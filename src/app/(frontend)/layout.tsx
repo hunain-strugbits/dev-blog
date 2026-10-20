@@ -4,6 +4,7 @@ import { getPayload } from 'payload'
 import configPromise from '@payload-config'
 import { headers as getHeaders } from 'next/headers'
 import Link from 'next/link'
+import { LogoutButton } from '@/components/LogoutButton'
 
 export const metadata = {
   description: 'A blank template using Payload in a Next.js app.',
@@ -114,10 +115,25 @@ const styles = `
     transition: background-color 0.15s ease;
   }
   .site-login:hover { background: var(--site-accent-hover); }
+  .site-logout {
+    padding: 0.5rem 1.125rem;
+    color: var(--site-fg);
+    background: transparent;
+    border: 1px solid var(--site-border);
+    border-radius: 8px;
+    font: inherit;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color 0.15s ease;
+  }
+  .site-logout:hover { border-color: var(--site-accent); }
+  .site-logout:disabled { opacity: 0.6; cursor: default; }
 
   .site-logo:focus-visible,
   .site-nav-link:focus-visible,
-  .site-login:focus-visible {
+  .site-login:focus-visible,
+  .site-logout:focus-visible {
     outline: 3px solid var(--site-accent);
     outline-offset: 3px;
     border-radius: 4px;
@@ -175,20 +191,27 @@ export default async function RootLayout(props: { children: React.ReactNode }) {
             </Link>
 
             <nav className="site-nav" aria-label="Main">
-              {headerData.navItems && headerData.navItems.length > 0 && (
-                <ul className="site-nav-list">
-                  {headerData.navItems.map((item, index) => (
-                    <li key={item.id ?? index}>
-                      <NavLink href={item.link}>{item.label}</NavLink>
-                    </li>
-                  ))}
-                </ul>
-              )}
+              <ul className="site-nav-list">
+                {headerData.navItems?.map((item, index) => (
+                  <li key={item.id ?? index}>
+                    <NavLink href={item.link}>{item.label}</NavLink>
+                  </li>
+                ))}
+                <li>
+                  <NavLink href="/categories">Categories</NavLink>
+                </li>
+                <li>
+                  <NavLink href="/authors">Authors</NavLink>
+                </li>
+              </ul>
 
               {user ? (
-                <span className="site-user" title={user.email}>
-                  {user.email}
-                </span>
+                <>
+                  <span className="site-user" title={user.email}>
+                    {user.email}
+                  </span>
+                  <LogoutButton />
+                </>
               ) : (
                 <Link href="/login" className="site-login">
                   Log in

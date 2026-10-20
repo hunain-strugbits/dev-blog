@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { headers as getHeaders } from 'next/headers'
 import Image from 'next/image'
+import { getAuthorName } from '@/lib/authorName'
 
 const styles = `
   .post-page {
@@ -55,6 +56,8 @@ const styles = `
     font-size: 0.8125rem;
     font-weight: 500;
   }
+  .post-page a.post-category { color: var(--fg); }
+  .post-page a.post-category:hover { text-decoration: none; background: var(--border); }
 
   .post-title {
     font-size: clamp(2rem, 5vw, 2.75rem);
@@ -187,6 +190,20 @@ export default async function SinglePostPage({ params }: { params: Promise<{ slu
             typeof category === 'object' && category !== null,
     )
 
+    const authorId =
+        post.author && typeof post.author === 'object' ? post.author.id : post.author
+    const author = authorId
+        ? await payload
+              .findByID({
+                  collection: 'users',
+                  id: authorId,
+                  depth: 0,
+                  select: { email: true },
+                  overrideAccess: true,
+              })
+              .catch(() => null)
+        : null
+
     const date = formatDate(post.createdAt)
     const cover =
         post.coverImage && typeof post.coverImage === 'object' && post.coverImage.url
@@ -206,18 +223,28 @@ export default async function SinglePostPage({ params }: { params: Promise<{ slu
                     {categories.length > 0 && (
                         <div className="post-categories">
                             {categories.map((category) => (
-                                <span key={category.id} className="post-category">
+                                <Link
+                                    key={category.id}
+                                    href={`/categories/${category.id}`}
+                                    className="post-category"
+                                >
                                     {category.title}
-                                </span>
+                                </Link>
                             ))}
                         </div>
                     )}
 
                     <h1 className="post-title">{post.title}</h1>
 
-                    {date && (
+                    {(author || date) && (
                         <p className="post-meta">
-                            <time dateTime={post.createdAt}>{date}</time>
+                            {author && (
+                                <>
+                                    By <Link href={`/authors/${author.id}`}>{getAuthorName(author.email)}</Link>
+                                    {date && ' · '}
+                                </>
+                            )}
+                            {date && <time dateTime={post.createdAt}>{date}</time>}
                         </p>
                     )}
                 </header>
