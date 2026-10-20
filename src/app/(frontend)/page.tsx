@@ -146,6 +146,11 @@ const styles = `
     color: var(--muted);
     font-size: 0.9375rem;
     line-height: 1.6;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
   }
   .post-card-meta {
     margin-top: auto;

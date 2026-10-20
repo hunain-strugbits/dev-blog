@@ -11,6 +11,7 @@ import { Posts } from './collections/Posts'
 import { Header } from './globals/Header'
 import { Categories } from './collections/Categories'
 import { Pages } from './collections/Pages'
+import { Comments } from './collections/Comments'
 
 
 const filename = fileURLToPath(import.meta.url)
@@ -23,7 +24,7 @@ export default buildConfig({
       baseDir: path.resolve(dirname),
     },
   },
-  collections: [Users, Media, Posts, Categories, Pages],
+  collections: [Users, Media, Posts, Categories, Pages, Comments],
   globals: [Header],
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET || '',

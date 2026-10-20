@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { headers as getHeaders } from 'next/headers'
 import Image from 'next/image'
 import { getAuthorName } from '@/lib/authorName'
+import { CommentForm } from '@/components/CommentForm'
 
 const styles = `
   .post-page {
@@ -130,6 +131,59 @@ const styles = `
     border-top: 1px solid var(--border);
   }
 
+  .comments {
+    margin-top: 3.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
+  }
+  .comments-title { margin: 0 0 1.5rem; font-size: 1.375rem; }
+  .comments-empty,
+  .comments-login { color: var(--muted); }
+  .comment-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin: 0 0 2rem;
+    padding: 0;
+    list-style: none;
+  }
+  .comment {
+    padding: 1rem 1.25rem;
+    background: var(--chip-bg);
+    border-radius: 10px;
+  }
+  .comment-meta { margin: 0 0 0.375rem; color: var(--muted); font-size: 0.875rem; }
+  .comment-meta strong { color: var(--fg); }
+  .comment-body { margin: 0; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+  .comment-form { display: flex; flex-direction: column; gap: 0.75rem; }
+  .comment-form-label { font-weight: 600; }
+  .comment-form-input {
+    width: 100%;
+    padding: 0.75rem;
+    color: var(--fg);
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font: inherit;
+    resize: vertical;
+    box-sizing: border-box;
+  }
+  .comment-form-input:focus-visible { outline: 3px solid var(--link); outline-offset: 2px; }
+  .comment-form-error { margin: 0; color: #dc2626; font-size: 0.875rem; }
+  .comment-form-submit {
+    align-self: flex-start;
+    padding: 0.625rem 1.25rem;
+    color: #fff;
+    background: var(--link);
+    border: none;
+    border-radius: 8px;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .comment-form-submit:disabled { opacity: 0.5; cursor: default; }
+
   .post-locked {
     max-width: 480px;
     margin: 6rem auto;
@@ -166,24 +220,30 @@ export default async function SinglePostPage({ params }: { params: Promise<{ slu
 
     if (!post) return notFound()
 
-    if (post.requiresAuth) {
-        const headers = await getHeaders()
-        const { user } = await payload.auth({ headers })
+    const headers = await getHeaders()
+    const { user } = await payload.auth({ headers })
 
-        if (!user) {
-            return (
-                <main className="post-page">
-                    <style>{styles}</style>
-                    <div className="post-locked">
-                        <div style={{ fontSize: '2.5rem' }} aria-hidden="true">🔒</div>
-                        <h1>Members only</h1>
-                        <p>Log in to read this post.</p>
-                        <Link href="/posts">Back to all posts</Link>
-                    </div>
-                </main>
-            )
-        }
+    if (post.requiresAuth && !user) {
+        return (
+            <main className="post-page">
+                <style>{styles}</style>
+                <div className="post-locked">
+                    <div style={{ fontSize: '2.5rem' }} aria-hidden="true">🔒</div>
+                    <h1>Members only</h1>
+                    <p>Log in to read this post.</p>
+                    <Link href="/posts">Back to all posts</Link>
+                </div>
+            </main>
+        )
     }
+
+    const comments = await payload.find({
+        collection: 'comments',
+        where: { post: { equals: post.id } },
+        sort: 'createdAt',
+        limit: 100,
+        depth: 0,
+    })
 
     const categories = (post.categories ?? []).filter(
         (category): category is Exclude<typeof category, string | number> =>
@@ -265,6 +325,39 @@ export default async function SinglePostPage({ params }: { params: Promise<{ slu
                 <div className="post-content">
                     {post.content && <RichText data={post.content} />}
                 </div>
+
+                <section className="comments" aria-labelledby="comments-heading">
+                    <h2 id="comments-heading" className="comments-title">
+                        Comments ({comments.totalDocs})
+                    </h2>
+
+                    {comments.docs.length === 0 ? (
+                        <p className="comments-empty">No comments yet. Be the first to comment.</p>
+                    ) : (
+                        <ul className="comment-list">
+                            {comments.docs.map((comment) => (
+                                <li key={comment.id} className="comment">
+                                    <p className="comment-meta">
+                                        <strong>{comment.authorName ?? 'Anonymous'}</strong>
+                                        {' · '}
+                                        <time dateTime={comment.createdAt}>
+                                            {formatDate(comment.createdAt)}
+                                        </time>
+                                    </p>
+                                    <p className="comment-body">{comment.body}</p>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+
+                    {user ? (
+                        <CommentForm postId={post.id} />
+                    ) : (
+                        <p className="comments-login">
+                            <Link href="/login">Log in</Link> to leave a comment.
+                        </p>
+                    )}
+                </section>
 
                 <footer className="post-footer">
                     <Link href="/posts">← Back to all posts</Link>
